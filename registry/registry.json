@@ -1,0 +1,169 @@
+{
+  "registry": {
+    "name": "Advantech Skills",
+    "created": "2026-04-21T13:27:58+00:00",
+    "schema_version": "1"
+  },
+  "skills": [
+    {
+      "name": "plan-eng-review",
+      "description": "Eng manager-mode plan review. Lock in the execution plan — architecture, data flow, diagrams, edge cases, test coverage, performance. Walks through issues interactively with opinionated recommendations. Use when asked to \"review the architecture\", \"engineering review\", or \"lock in the plan\". Proactively suggest when the user has a plan or design doc and is about to start coding — to catch architecture issues before implementation. (gstack) Voice triggers (speech-to-text aliases): \"tech review\", \"technical review\", \"plan engineering review\".",
+      "version": "1.0.0",
+      "author": "",
+      "license": "",
+      "tags": [
+        "eng",
+        "manager-mode",
+        "plan",
+        "review",
+        "lock",
+        "execution",
+        "architecture",
+        "data",
+        "flow",
+        "diagrams"
+      ],
+      "platforms": [
+        "claude-code",
+        "copilot",
+        "cursor",
+        "windsurf",
+        "cline",
+        "codex",
+        "gemini"
+      ],
+      "published": "2026-04-21T13:33:28+00:00",
+      "path": "skills/plan-eng-review",
+      "validation": {
+        "valid": true,
+        "errors": 0,
+        "warnings": 6
+      },
+      "security": {
+        "clean": true,
+        "issues": 0
+      },
+      "staleness": {}
+    },
+    {
+      "name": "qa",
+      "description": "Systematically QA test a web application and fix bugs found. Runs QA testing, then iteratively fixes bugs in source code, committing each fix atomically and re-verifying. Use when asked to \"qa\", \"QA\", \"test this site\", \"find bugs\", \"test and fix\", or \"fix what's broken\". Proactively suggest when the user says a feature is ready for testing or asks \"does this work?\". Three tiers: Quick (critical/high only), Standard (+ medium), Exhaustive (+ cosmetic). Produces before/after health scores, fix evidence, and a ship-readiness summary. For report-only mode, use /qa-only. (gstack) Voice triggers (speech-to-text aliases): \"quality check\", \"test the app\", \"run QA\".",
+      "version": "2.0.0",
+      "author": "",
+      "license": "",
+      "tags": [
+        "systematically",
+        "test",
+        "web",
+        "application",
+        "fix",
+        "bugs",
+        "found",
+        "runs",
+        "testing",
+        "iteratively"
+      ],
+      "platforms": [
+        "claude-code",
+        "copilot",
+        "cursor",
+        "windsurf",
+        "cline",
+        "codex",
+        "gemini"
+      ],
+      "published": "2026-04-21T13:33:28+00:00",
+      "path": "skills/qa",
+      "validation": {
+        "valid": true,
+        "errors": 0,
+        "warnings": 6
+      },
+      "security": {
+        "clean": true,
+        "issues": 0
+      },
+      "staleness": {}
+    },
+    {
+      "name": "review",
+      "description": "Pre-landing PR review. Analyzes diff against the base branch for SQL safety, LLM trust boundary violations, conditional side effects, and other structural issues. Use when asked to \"review this PR\", \"code review\", \"pre-landing review\", or \"check my diff\". Proactively suggest when the user is about to merge or land code changes. (gstack)",
+      "version": "1.0.0",
+      "author": "",
+      "license": "",
+      "tags": [
+        "pre-landing",
+        "review",
+        "analyzes",
+        "diff",
+        "against",
+        "base",
+        "branch",
+        "sql",
+        "safety",
+        "llm"
+      ],
+      "platforms": [
+        "claude-code",
+        "copilot",
+        "cursor",
+        "windsurf",
+        "cline",
+        "codex",
+        "gemini"
+      ],
+      "published": "2026-04-21T13:33:28+00:00",
+      "path": "skills/review",
+      "validation": {
+        "valid": true,
+        "errors": 0,
+        "warnings": 6
+      },
+      "security": {
+        "clean": true,
+        "issues": 0
+      },
+      "staleness": {}
+    },
+    {
+      "name": "weather",
+      "description": "\"Get current weather and forecasts via wttr.in or Open-Meteo. Use when: user asks about weather, temperature, or forecasts for any location. NOT for: historical weather data, severe weather alerts, or detailed meteorological analysis. No API key needed.\"",
+      "version": "0.0.0",
+      "author": "",
+      "license": "",
+      "tags": [
+        "get",
+        "current",
+        "weather",
+        "forecasts",
+        "via",
+        "wttr",
+        "open-meteo",
+        "use",
+        "user",
+        "asks"
+      ],
+      "platforms": [
+        "claude-code",
+        "copilot",
+        "cursor",
+        "windsurf",
+        "cline",
+        "codex",
+        "gemini"
+      ],
+      "published": "2026-04-21T13:33:28+00:00",
+      "path": "skills/weather",
+      "validation": {
+        "valid": true,
+        "errors": 0,
+        "warnings": 7
+      },
+      "security": {
+        "clean": true,
+        "issues": 0
+      },
+      "staleness": {}
+    }
+  ]
+}
