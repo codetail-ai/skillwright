@@ -6,20 +6,20 @@
 
 ```bash
 # One-liner — installs to every detected tool
-curl -fsSL https://raw.githubusercontent.com/johnsonafool/skillwright/main/scripts/bootstrap.sh | sh
+curl -fsSL https://raw.githubusercontent.com/codetail-ai/skillwright/main/scripts/bootstrap.sh | sh
 ```
 
 Or clone manually (pick your tool's path):
 
 ```bash
 # Claude Code + VS Code Copilot (shared)
-git clone https://github.com/johnsonafool/skillwright.git ~/.claude/skills/skillwright
+git clone https://github.com/codetail-ai/skillwright.git ~/.claude/skills/skillwright
 
 # Codex / Gemini / Kiro / Antigravity (universal path)
-git clone https://github.com/johnsonafool/skillwright.git ~/.agents/skills/skillwright
+git clone https://github.com/codetail-ai/skillwright.git ~/.agents/skills/skillwright
 
 # Cursor (per-project)
-git clone https://github.com/johnsonafool/skillwright.git .cursor/rules/skillwright
+git clone https://github.com/codetail-ai/skillwright.git .cursor/rules/skillwright
 ```
 
 Already cloned? `./install.sh` symlinks to all detected platforms (`--dry-run`, `--uninstall` supported). See [All Platforms](#all-platforms) for the full matrix.

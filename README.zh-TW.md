@@ -8,20 +8,20 @@
 
 ```bash
 # 一行指令 — 自動安裝到所有偵測到的工具
-curl -fsSL https://raw.githubusercontent.com/johnsonafool/skillwright/main/scripts/bootstrap.sh | sh
+curl -fsSL https://raw.githubusercontent.com/codetail-ai/skillwright/main/scripts/bootstrap.sh | sh
 ```
 
 或手動 clone（依你使用的工具選擇路徑）：
 
 ```bash
 # Claude Code + VS Code Copilot（共用路徑）
-git clone https://github.com/johnsonafool/skillwright.git ~/.claude/skills/skillwright
+git clone https://github.com/codetail-ai/skillwright.git ~/.claude/skills/skillwright
 
 # Codex / Gemini / Kiro / Antigravity（通用路徑）
-git clone https://github.com/johnsonafool/skillwright.git ~/.agents/skills/skillwright
+git clone https://github.com/codetail-ai/skillwright.git ~/.agents/skills/skillwright
 
 # Cursor（每個專案各自設定）
-git clone https://github.com/johnsonafool/skillwright.git .cursor/rules/skillwright
+git clone https://github.com/codetail-ai/skillwright.git .cursor/rules/skillwright
 ```
 
 已經 clone 過了？執行 `./install.sh` 會自動建立 symlink 到所有偵測到的平台（支援 `--dry-run`、`--uninstall`）。完整的平台對照表請見 [所有平台](#所有平台)。

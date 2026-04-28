@@ -365,13 +365,13 @@ install them — like an internal app store for agent skills.
 
    STEP 1: Install skillwright (one time)
 
-     git clone https://github.com/johnsonafool/skillwright.git ~/.claude/skills/skillwright
+     git clone https://github.com/codetail-ai/skillwright.git ~/.claude/skills/skillwright
 
      For VS Code Copilot:
-       git clone https://github.com/johnsonafool/skillwright.git .github/skills/skillwright
+       git clone https://github.com/codetail-ai/skillwright.git .github/skills/skillwright
 
      For Cursor:
-       git clone https://github.com/johnsonafool/skillwright.git .cursor/rules/skillwright
+       git clone https://github.com/codetail-ai/skillwright.git .cursor/rules/skillwright
 
    STEP 2: Clone the team registry (one time)
 

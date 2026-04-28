@@ -2,7 +2,7 @@
 # bootstrap.sh — One-liner bootstrap for skillwright
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/johnsonafool/skillwright/main/scripts/bootstrap.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/codetail-ai/skillwright/main/scripts/bootstrap.sh | sh
 #
 # Clones skillwright to ~/.agents/skills/ and symlinks to all detected
 # global platforms. POSIX-compatible (works in bash, dash, zsh, ash).
@@ -12,7 +12,7 @@ set -eu
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-REPO_URL="https://github.com/johnsonafool/skillwright.git"
+REPO_URL="https://github.com/codetail-ai/skillwright.git"
 SKILL_NAME="skillwright"
 CANONICAL_DIR="$HOME/.agents/skills/$SKILL_NAME"
 

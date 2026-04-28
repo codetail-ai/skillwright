@@ -561,7 +561,7 @@ jobs:
 - API integration → Claude API documentation
 
 **Report issues:**
-- GitHub Issues: [skillwright issues](https://github.com/johnsonafool/skillwright/issues)
+- GitHub Issues: [skillwright issues](https://github.com/codetail-ai/skillwright/issues)
 
 ---
 
