@@ -61,11 +61,12 @@ sales-report-skill/
 ├── scripts/          # Functional code
 ├── references/       # On-demand docs
 ├── assets/           # Templates, configs
-├── install.sh        # Cross-platform installer (14 tools)
+├── install.sh        # Unix installer (macOS / Linux / WSL)
+├── install.ps1       # Windows installer (PowerShell 5.1+)
 └── README.md
 ```
 
-The skill auto-installs on your platform and tells you how to invoke it. The generated `install.sh` handles all 14 tools, auto-generates format adapters for Cursor (`.mdc`) and Windsurf, and creates a `~/.agents/skills/` symlink for cross-tool discovery.
+The skill auto-installs on your platform and tells you how to invoke it. Both installers handle all 14 tools, auto-generate format adapters for Cursor (`.mdc`) and Windsurf, and create a `~/.agents/skills/` link for cross-tool discovery. On Windows the link is a directory junction (no admin needed) or a symlink (with Developer Mode); see [Windows notes](#windows-notes).
 
 ---
 
@@ -199,11 +200,11 @@ alias install-skills='mkdir -p .cursor/rules && ln -s ~/agent-skills/skillwright
 ```
 
 ```powershell
-# Windows (native PowerShell). Generated skills currently ship install.sh only;
-# see the v2 roadmap in docs/windows-support.md to also emit install.ps1.
-.\install.ps1                   # Auto-detect (Skillwright itself)
+# Windows (native PowerShell). Generated skills now ship install.ps1 alongside install.sh.
+.\install.ps1                   # Auto-detect
+.\install.ps1 -All              # Install everywhere
+.\install.ps1 -Platform cursor  # Force a platform
 .\install.ps1 -DryRun
-.\install.ps1 -Uninstall
 ```
 
 ### Windows notes

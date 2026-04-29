@@ -1,7 +1,7 @@
 # Windows Native Support — Design & Handoff
 
-**Status:** v1 in progress on branch `windows-native-support`
-**Audience:** Whoever continues this work after the v1 cut. Read this end-to-end before touching anything.
+**Status:** v1 + v2 landed on branch `windows-native-support`. Awaiting verification on a real Windows machine before merge to `master`.
+**Audience:** Whoever continues this work — or reviews the PR — after this branch. Read this end-to-end before touching anything.
 
 ---
 
@@ -13,21 +13,27 @@ Python tooling (`validate.py`, `security_scan.py`, etc.) is already cross-platfo
 
 ---
 
-## 2. v1 scope (this branch)
+## 2. Scope landed on this branch
 
-In scope:
+### v1 (committed first)
 1. **Path abstraction** — Windows path resolution for the 7+ install targets, inlined into each script (matching the existing shell convention where each script is self-contained).
 2. **PowerShell ports of the three top-level shell scripts:**
    - `install.sh` → `install.ps1` (symlink the cloned repo to all detected platforms)
    - `scripts/bootstrap.sh` → `scripts/bootstrap.ps1` (one-liner `iwr | iex` installer)
    - `scripts/install-skill.sh` → `scripts/install-skill.ps1` (universal skill installer)
-3. **Symlink strategy with graceful fallback** — try real symlink, fall back to directory junction, then to copy-with-warning.
-4. **README updates** — add a Windows Quick Start, document Dev Mode and execution policy gotchas.
+3. **Three-tier link strategy** — try real symlink, fall back to directory junction, then to copy-with-warning.
+4. **README updates** — Windows Quick Start, Dev Mode and execution policy gotchas.
 
-Explicitly out of scope (deferred to v2 — see §7):
-- `scripts/install-template.sh` PowerShell sibling. This is the template that gets shipped *inside every generated skill*, so porting it requires also updating the generator that fills in `{{SKILL_NAME}}`.
-- CI Windows runner.
-- Native Windows support inside the Python scripts (already cross-platform — verify, don't port).
+### v2 (committed on top of v1)
+1. **`scripts/install-template.ps1`** — PowerShell sibling of `install-template.sh`. Every generated skill now ships *both* installers.
+2. **Generator instruction updates** — `SKILL.md` and `references/pipeline-phases.md` now tell the agent to emit `install.ps1` alongside `install.sh` during Phase 5 / Step 6, with the same `{{SKILL_NAME}}` substitution. The "generator" is the agent itself reading these markdown instructions; there is no Python emitter to update.
+3. **`.github/workflows/test-installers.yml`** — CI on Ubuntu (POSIX shell parse via `bash -n` and `dash -n`, plus PowerShell tokenizer/AST parse via `pwsh`) and Windows (real `install.ps1` + `-Uninstall` round-trip on `windows-latest`). Triggered on changes to install scripts. Without this, the PowerShell ports would silently rot.
+4. **Python scripts spot-checked** — `validate.py`, `security_scan.py`, `staleness_check.py`, `skill_registry.py`, `export_utils.py` all use `pathlib.Path` and `subprocess.run([…])` (no `shell=True`). Confirmed Windows-clean; no port needed.
+
+### Explicitly deferred (consider for v3)
+- **`validate.py` parity check** — could warn when a skill ships `install.sh` but not `install.ps1`. Net-new functionality (`validate.py` doesn't currently inspect installer files), so out of scope here. Drop this in only if generated-skill quality slips.
+- **Generated-skill READMEs** — pipeline-phases.md now instructs that both installers ship, but downstream skills generated *before* this branch lands will only have `install.sh`. They'll need re-generation or a one-off sed pass to acquire `install.ps1`.
+- **OneDrive-aware path detection** — see §8 limitations. Not worth doing until a user reports a real problem.
 
 ---
 
@@ -117,20 +123,25 @@ We do *not* unblock files programmatically or recommend `-ExecutionPolicy Unrest
 
 ---
 
-## 4. File layout after v1
+## 4. File layout after v1 + v2
 
 ```
 install.sh                       # unchanged
-install.ps1                      # NEW — Windows port
+install.ps1                      # v1 — Windows port of install.sh
 scripts/
   bootstrap.sh                   # unchanged
-  bootstrap.ps1                  # NEW — Windows port
+  bootstrap.ps1                  # v1 — Windows port of bootstrap.sh
   install-skill.sh               # unchanged
-  install-skill.ps1              # NEW — Windows port
-  install-template.sh            # unchanged — DEFERRED to v2
+  install-skill.ps1              # v1 — Windows port of install-skill.sh
+  install-template.sh            # unchanged
+  install-template.ps1           # v2 — Windows port of install-template.sh
 docs/
-  windows-support.md             # NEW — this file
-README.md                        # UPDATED — Windows Quick Start added
+  windows-support.md             # v1 — this file (updated in v2)
+.github/workflows/
+  test-installers.yml            # v2 — CI for both shell + PowerShell scripts
+SKILL.md                         # v2 — Phase 5 instructs emitting both installers
+references/pipeline-phases.md    # v2 — Step 6 instructs emitting both installers
+README.md                        # v1 — Windows Quick Start added
 ```
 
 **Each `.ps1` is a self-contained port of its `.sh` sibling.** They duplicate the helper functions (color output, logging, symlink-with-fallback, platform detection). That duplication is intentional — `bootstrap.ps1` *must* be standalone because it's downloaded and executed via `iwr | iex`, and we keep `install.ps1` and `install-skill.ps1` standalone for symmetry with their shell counterparts.
@@ -141,15 +152,20 @@ If duplication ever becomes a real maintenance pain (it shouldn't — three file
 
 ## 5. How to verify a change
 
-There's no automated CI for this layer yet (see §7). Manual verification per change:
+CI (`.github/workflows/test-installers.yml`) runs on every PR touching install scripts and covers POSIX shell parsing, PowerShell parsing, and a real install/uninstall round-trip on `windows-latest`. **CI green is the floor, not the ceiling** — if you change adapter logic or the link fallback chain, also run the manual checklist below on a real Windows machine.
 
-### 5.1 On Linux/WSL with `pwsh` installed
+### 5.1 On Linux/WSL with `pwsh` installed (mirrors CI's parse step)
+
 Catches obvious syntax errors. Necessary but not sufficient.
 
 ```bash
-pwsh -NoProfile -Command "Get-Command -Syntax (Get-Content -Raw ./install.ps1)" 2>&1 | head
-# Better: just try to parse it
-pwsh -NoProfile -File ./install.ps1 -DryRun
+pwsh -NoProfile -Command '
+  $errs = $null
+  [System.Management.Automation.Language.Parser]::ParseFile(
+    (Resolve-Path ./install.ps1).Path, [ref]$null, [ref]$errs
+  ) | Out-Null
+  $errs | ForEach-Object { "$($_.Extent.StartLineNumber): $($_.Message)" }
+'
 ```
 
 ### 5.2 On native Windows (the only real test)
@@ -206,23 +222,24 @@ Test-Path $HOME\.agents\skills\skillwright   # should be False
 
 ---
 
-## 7. v2 scope (deferred — pick up here next)
+## 7. What's left after v1 + v2
 
 In rough priority order:
 
-1. **Port `scripts/install-template.sh` → `install-template.ps1`.** Every generated skill currently ships an `install.sh`. After v2, generated skills should also ship an `install.ps1` so end-users on Windows can install third-party skills. This requires:
-   - Writing the template port (mostly mechanical, follows v1 patterns).
-   - Updating the generator (somewhere in `SKILL.md` + references) to emit *both* `install.sh` and `install.ps1` from the templates, with `{{SKILL_NAME}}` substitution working for both.
-   - Updating `validate.py` to optionally check that cross-platform skills have both installers.
-   - Find the generator: grep for `install-template.sh` and `{{SKILL_NAME}}` to locate where templates are read and rendered.
+1. **Real Windows verification.** The CI job (`.github/workflows/test-installers.yml`) covers parse-correctness and the install/uninstall round-trip on `windows-latest`, which catches a lot. But it does not exercise:
+   - Format adapters with a real Cursor / Windsurf install present (would need a configured runner).
+   - The `iwr | iex` bootstrap path against the live GitHub URL — to test, push the branch, then run the one-liner from the README on a Windows box pointing at `windows-native-support`.
+   - Behaviour with Developer Mode disabled (junction fallback path). GitHub's `windows-latest` runners typically allow symlink creation, so the junction tier may never get hit in CI.
 
-2. **CI Windows runner.** Without this, the PowerShell ports will rot every time someone updates the shell scripts and forgets to mirror the change. Minimal version: a GitHub Actions job on `windows-latest` that runs `install.ps1 -DryRun` and `install.ps1` followed by `install.ps1 -Uninstall`. Add to whatever CI exists (or create one).
+   Run the manual checklist in §5.2 once on a real Windows machine before merging to `master`.
 
-3. **Verify Python scripts on Windows.** They should already work (`pathlib`, no shell dependencies), but spot-check `staleness_check.py`, `validate.py`, and `skill_registry.py` on Windows for path-separator surprises.
+2. **Re-generate previously-shipped skills.** Any skill generated before v2 ships only `install.sh`. They are not broken — Windows users can still clone and use them in WSL — but they don't have a native installer. Either re-run the generation pipeline on each, or write a one-off `for skill in registry/*; do sed s/{{SKILL_NAME}}/<n>/g scripts/install-template.ps1 > $skill/install.ps1; done` migration.
 
-4. **Format adapters parity.** `install-skill.ps1` must replicate the Cursor `.mdc` and Windsurf rule generation in `install-skill.sh`. The shell version uses `awk` and `sed`; the PowerShell version uses `Select-String` / `-replace` / here-strings. v1 includes this — but if you find edge cases (multi-line frontmatter values, embedded `---`), they likely affect both versions.
+3. **`validate.py` parity check (consider, don't rush).** Could warn when a skill has `install.sh` but no `install.ps1`. Useful as a guardrail once v2 has bedded in. Skip until you see drift.
 
-5. **Documentation.** Once v2 lands, the README "Windows" section should grow a "Building skills on Windows" subsection covering the `install-template.ps1` story.
+4. **Documentation polish.** README's "Windows notes" links to this doc. If skill authors start asking "how do I author a Windows-compatible skill", add a short "Building skills on Windows" subsection covering `install-template.ps1` and PowerShell 5.1 idioms.
+
+5. **OneDrive-redirected `$HOME`.** See §8. If a user reports a real issue, detect with `Get-ItemProperty 'HKCU:\Software\Microsoft\OneDrive\Accounts\Personal' -Name UserFolder` and either redirect installs or print a warning.
 
 ---
 
@@ -262,12 +279,7 @@ A symlink whose target was deleted returns `$false` from `Test-Path`. Use `Get-I
 
 ## 9. Branch hygiene
 
-- This branch is `windows-native-support`. **Do not merge to `master` until v1 is verified on a real Windows machine.**
+- This branch is `windows-native-support`. **Do not merge to `master` until verified on a real Windows machine.** CI green is necessary; the manual checklist in §5.2 is sufficient.
 - If you need to abandon and restart, branch from `master` again — don't try to salvage half-done state.
-- Each commit on this branch should be reviewable in isolation. Suggested split:
-  1. Add `docs/windows-support.md` (this file).
-  2. Add `install.ps1`.
-  3. Add `scripts/bootstrap.ps1`.
-  4. Add `scripts/install-skill.ps1`.
-  5. Update `README.md` with Windows Quick Start.
+- Commit history on this branch is split for reviewability — five v1 commits (design doc, three ports, README) plus v2 commits on top (install-template port, generator instructions, CI workflow, doc updates). `git log master..HEAD --oneline` shows the full sequence.
 - When opening the PR, link this doc in the PR description — it's the authoritative source for "why is this the way it is".
