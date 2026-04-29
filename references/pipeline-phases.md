@@ -25,7 +25,7 @@ Phase 5: IMPLEMENTATION  -> Create all files, validate, security scan
 - Description: 1-1024 chars; this IS the activation mechanism
 - Generated SKILL.md must be **<500 lines** (move detail to `references/`)
 - Frontmatter must include: `name`, `description`, `license`, `metadata` (author, version)
-- `install.sh` is generated for cross-platform support
+- `install.sh` and `install.ps1` are both generated — Unix and Windows installers ship together in every skill
 - `marketplace.json` is **NOT** needed for simple skills
 - Validation and security scan run at the end of Phase 5
 
@@ -459,7 +459,8 @@ skill-name/
 │   └── guide.md
 ├── assets/
 │   └── config.json
-├── install.sh            # Cross-platform installer
+├── install.sh            # Unix installer (macOS / Linux / WSL)
+├── install.ps1           # Windows installer (PowerShell 5.1+)
 └── README.md             # Multi-platform install instructions
 ```
 
@@ -481,6 +482,7 @@ skill-name/
 ├── assets/
 │   └── config.json
 ├── install.sh
+├── install.ps1
 └── README.md
 ```
 
@@ -508,6 +510,7 @@ skill-name/
 │   ├── config.json
 │   └── metadata.json
 ├── install.sh
+├── install.ps1
 └── README.md
 ```
 
@@ -1102,24 +1105,31 @@ Detailed documentation files. Each must be self-contained with real content.
 
 **metadata.json** (if needed): Domain-specific mappings, aliases, conversions, groupings.
 
-### Step 6: Generate install.sh
+### Step 6: Generate install.sh AND install.ps1
 
-Generate the installer from `scripts/install-template.sh` — the canonical template. Replace `{{SKILL_NAME}}` with the actual skill name and `chmod +x`:
+Generate **both** installers from the canonical templates. Substitute `{{SKILL_NAME}}` in each, and `chmod +x` the shell version. The PowerShell version needs no chmod.
 
 ```bash
-# During skill generation:
+# Unix installer (covers macOS / Linux / WSL)
 sed "s/{{SKILL_NAME}}/skill-name/g" scripts/install-template.sh > skill-name/install.sh
 chmod +x skill-name/install.sh
+
+# Windows installer (covers native PowerShell on Windows 10/11)
+sed "s/{{SKILL_NAME}}/skill-name/g" scripts/install-template.ps1 > skill-name/install.ps1
 ```
 
-The template handles:
-- POSIX-compatible shell (`set -eu`, no bashisms)
+Both must be present in every generated skill — there is no "Unix-only" or "Windows-only" mode. End-users on either OS get a working installer in the package they receive.
+
+Both templates handle:
 - 14 platforms: claude-code, copilot, cursor, windsurf, cline, codex, gemini, kiro, trae, goose, opencode, roo-code, antigravity, universal
 - Corrected paths: Codex → `~/.agents/skills/`, Windsurf → `.windsurf/rules/` (project) / `global_rules.md` (global)
 - Format adapters: auto-generates `.mdc` for Cursor, `.md` rules for Windsurf, plain `.md` for Cline/Roo/Trae
-- Universal `.agents/skills/` secondary symlink after every install
-- `--all` flag to install to every detected tool at once
-- `--dry-run` for preview without changes
+- Universal `.agents/skills/` secondary link after every install
+- All / dry-run flags (`--all` / `--dry-run` for sh, `-All` / `-DryRun` for ps1)
+
+Differences worth noting:
+- `install-template.sh` is POSIX-compatible (`set -eu`, no bashisms).
+- `install-template.ps1` targets PowerShell 5.1 (built into Windows 10/11; no install needed). Uses a three-tier fallback (SymbolicLink → Junction → Copy) so it works without admin or Developer Mode. See `docs/windows-support.md` for the full design rationale.
 
 ### Step 7: Write README.md
 
@@ -1140,7 +1150,9 @@ git clone <repo-url> ~/.agents/skills/skill-name
 
 Works with Codex CLI, Gemini CLI, Kiro, Antigravity, and other tools that read `~/.agents/skills/`.
 
-### Using install.sh (Recommended)
+### Using the installer (Recommended)
+
+**macOS / Linux / WSL:**
 
 ```bash
 chmod +x install.sh
@@ -1149,6 +1161,22 @@ chmod +x install.sh
 ./install.sh --platform cursor        # Cursor (auto-generates .mdc)
 ./install.sh --all                    # All detected platforms
 ./install.sh --dry-run                # Preview without installing
+```
+
+**Native Windows (PowerShell 5.1 or later):**
+
+```powershell
+.\install.ps1                          # Auto-detect platform
+.\install.ps1 -Platform claude-code    # Claude Code
+.\install.ps1 -Platform cursor         # Cursor (auto-generates .mdc)
+.\install.ps1 -All                     # All detected platforms
+.\install.ps1 -DryRun                  # Preview without installing
+```
+
+If PowerShell blocks the script with an execution-policy error, run it with a per-session bypass:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 ### Alternative: npx
@@ -1283,8 +1311,8 @@ Main Decisions:
 
 Next Steps:
 1. Get API key: [instructions or link]
-2. Configure: export API_KEY_VAR="your_key"
-3. Install: ./install.sh
+2. Configure: export API_KEY_VAR="your_key" (Unix) / $env:API_KEY_VAR="your_key" (PowerShell)
+3. Install: ./install.sh   (Unix)   |   .\install.ps1   (Windows)
 4. Test: "[example query 1]"
 
 See README.md for complete multi-platform installation instructions.
@@ -1299,7 +1327,7 @@ See README.md for complete multi-platform installation instructions.
 | 3 | `scripts/*.py` | Functional Python code, no placeholders |
 | 4 | `references/*.md` | Detailed documentation, self-contained |
 | 5 | `assets/*.json` | Real values, validated JSON |
-| 6 | `install.sh` | Cross-platform installer, `chmod +x` |
+| 6 | `install.sh` + `install.ps1` | Both installers (Unix + Windows). `chmod +x install.sh` only. |
 | 7 | `README.md` | Multi-platform install instructions |
 | 8 | Run `validate.py` | Must pass before delivery |
 | 9 | Run `security_scan.py` | Must pass before delivery |
@@ -1328,7 +1356,8 @@ See README.md for complete multi-platform installation instructions.
 - [ ] All errors as JSON to stderr with error_type classification
 - [ ] References written with real, self-contained content
 - [ ] Assets created with valid JSON and real values
-- [ ] `install.sh` generated with cross-platform support
+- [ ] `install.sh` generated (POSIX shell, `chmod +x`)
+- [ ] `install.ps1` generated (PowerShell 5.1+, no chmod needed)
 - [ ] `README.md` written with multi-platform install instructions
 - [ ] `requirements.txt` created (if third-party dependencies used)
 - [ ] Spec validation passed (`scripts/validate.py`)
