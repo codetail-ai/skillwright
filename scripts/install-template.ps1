@@ -38,10 +38,10 @@
 
 .NOTES
     Exit codes:
-      0 — Success
-      1 — Validation failed (missing or malformed SKILL.md)
-      2 — Platform not detected
-      3 — Permission denied
+      0 -- Success
+      1 -- Validation failed (missing or malformed SKILL.md)
+      2 -- Platform not detected
+      3 -- Permission denied
 #>
 [CmdletBinding()]
 param(
@@ -56,7 +56,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 # ---------------------------------------------------------------------------
-# Constants — {{SKILL_NAME}} is substituted at generation time
+# Constants -- {{SKILL_NAME}} is substituted at generation time
 # ---------------------------------------------------------------------------
 $SkillName = '{{SKILL_NAME}}'
 $Version   = '1.0.0'
@@ -71,7 +71,7 @@ function Write-Ok      { param([string]$Message) if ($script:UseColor) { Write-H
 function Write-WarnMsg { param([string]$Message) if ($script:UseColor) { Write-Host '[WARN]  ' -ForegroundColor Yellow -NoNewline } else { Write-Host '[WARN]  ' -NoNewline }; Write-Host $Message }
 function Write-Err     { param([string]$Message) if ($script:UseColor) { Write-Host '[ERROR] ' -ForegroundColor Red -NoNewline } else { Write-Host '[ERROR] ' -NoNewline }; Write-Host $Message }
 
-# BOM-less UTF-8 writer (PS 5.1 quirk; see docs/windows-support.md §7a).
+# BOM-less UTF-8 writer (PS 5.1 quirk; see docs/windows-support.md section 7a).
 function Write-Utf8NoBom {
     param(
         [Parameter(Mandatory)] [string] $Path,

@@ -72,10 +72,22 @@ jobs:
           shellcheck -S warning install.sh scripts/bootstrap.sh scripts/install-skill.sh scripts/install-template.sh || true
 
   parse-powershell-ubuntu:
-    name: Parse PowerShell scripts (pwsh on Ubuntu — fast feedback)
+    name: Parse PowerShell scripts (pwsh on Ubuntu, fast feedback)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: ASCII-only check (PS 5.1 reads .ps1 as Windows-1252; UTF-8 multi-bytes break the tokenizer)
+        run: |
+          set -e
+          fail=0
+          for f in install.ps1 scripts/bootstrap.ps1 scripts/install-skill.ps1 scripts/install-template.ps1; do
+            if grep -nP '[^\x00-\x7F]' "$f"; then
+              echo "::error file=$f::Non-ASCII characters detected. PS 5.1 will misread these as Windows-1252 and break parsing. Replace with ASCII (e.g. -- for em-dash, -> for arrow)."
+              fail=1
+            fi
+          done
+          exit $fail
 
       - name: PowerShell tokenizer + AST parse
         shell: pwsh

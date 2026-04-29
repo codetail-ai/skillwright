@@ -65,7 +65,7 @@ function Get-PlatformEntries {
 }
 
 # ---------------------------------------------------------------------------
-# Create a symlink with three-tier fallback (symlink → junction → copy).
+# Create a symlink with three-tier fallback (symlink -> junction -> copy).
 # Returns 'symlink', 'junction', or 'copy' to indicate which tier succeeded.
 # ---------------------------------------------------------------------------
 function New-SkillLink {
@@ -102,9 +102,9 @@ function New-SkillLink {
         } catch { }
     }
 
-    # Tier 3: copy fallback — breaks auto-update via `git pull`
+    # Tier 3: copy fallback -- breaks auto-update via `git pull`
     Write-WarnMsg "Could not create symlink or junction for $LinkPath. Falling back to file copy."
-    Write-WarnMsg "  This breaks the auto-update loop — running 'git pull' in the source repo will NOT propagate."
+    Write-WarnMsg "  This breaks the auto-update loop -- running 'git pull' in the source repo will NOT propagate."
     Write-WarnMsg "  Re-run install.ps1 to refresh, or enable Developer Mode (Settings -> For developers)."
     Copy-Item -LiteralPath $Target -Destination $LinkPath -Recurse -Force
     return 'copy'

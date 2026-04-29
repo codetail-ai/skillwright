@@ -245,6 +245,16 @@ In rough priority order:
 
 ## 7a. Gotchas worth carrying forward
 
+### Non-ASCII in .ps1 files breaks PS 5.1 parsing
+
+PowerShell 5.1 reads `.ps1` files as **Windows-1252** unless they have a UTF-8 BOM. A UTF-8 multi-byte sequence in any string literal or comment will be misinterpreted, and one of the bytes (`0x94` for em-dash, `0x92` for right-single-quote) renders as `"` in Windows-1252 — closing the string early and cascading into a "missing terminator" error tens of lines later.
+
+Symptom: CI fails on `windows-latest` with `The string is missing the terminator: ".` pointing at a line that *looks* fine, with a "missing closing `}`" error pointing at an earlier function header.
+
+Fix: keep `.ps1` files pure ASCII. Replace `—` with `--`, `→` with `->`, `'` with `'`, `"`/`"` with `"`. The CI workflow has an `ASCII-only check` step that fails the build if any non-ASCII slips in.
+
+We chose ASCII over adding a UTF-8 BOM because BOMs in `.ps1` files have their own quirks (some editors and SCCM-style deployment tools strip them) and the codebase's prose is already mostly ASCII anyway.
+
 ### BOM-less UTF-8 (PS 5.1)
 
 PowerShell 5.1's `Set-Content -Encoding UTF8` writes a UTF-8 **BOM**. PS 7+ writes BOM-less. Two places this bites us:
