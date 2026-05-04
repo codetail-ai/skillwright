@@ -8,7 +8,7 @@
 
 ```bash
 # 一行指令 — 自動安裝到所有偵測到的工具
-curl -fsSL https://raw.githubusercontent.com/codetail-ai/skillwright/main/scripts/bootstrap.sh | sh
+curl -fsSL https://raw.githubusercontent.com/codetail-ai/skillwright/master/scripts/bootstrap.sh | sh
 ```
 
 或手動 clone（依你使用的工具選擇路徑）：

@@ -7,7 +7,7 @@
     global platforms.
 
     Distributed for `iwr | iex`:
-        iwr -useb https://raw.githubusercontent.com/codetail-ai/skillwright/main/scripts/bootstrap.ps1 | iex
+        iwr -useb https://raw.githubusercontent.com/codetail-ai/skillwright/master/scripts/bootstrap.ps1 | iex
 
     `iex` on a downloaded string runs in the current scope and bypasses
     PowerShell execution policy, which is the standard install pattern on
