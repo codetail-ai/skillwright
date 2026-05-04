@@ -1,0 +1,202 @@
+# Smoke-test the install scripts on both Unix and Windows.
+#
+# What this catches:
+#   - PowerShell syntax errors (PS 5.1 on windows-latest, pwsh on ubuntu-latest)
+#   - Bash/POSIX errors (bash and dash)
+#   - Regressions where a .sh change isn't mirrored in the .ps1 sibling
+#   - Three-tier link fallback failing in clean GitHub-runner environments
+#
+# What this does NOT catch:
+#   - Format adapter output correctness (Cursor .mdc, Windsurf rules) — that
+#     would need a real platform installed on the runner.
+#   - End-to-end skill activation — out of scope; install scripts only.
+#
+# See docs/windows-support.md for the full v2 verification checklist.
+
+name: Test installers
+
+on:
+  push:
+    branches: [master, windows-native-support]
+    paths:
+      - 'install.sh'
+      - 'install.ps1'
+      - 'scripts/bootstrap.sh'
+      - 'scripts/bootstrap.ps1'
+      - 'scripts/install-skill.sh'
+      - 'scripts/install-skill.ps1'
+      - 'scripts/install-template.sh'
+      - 'scripts/install-template.ps1'
+      - '.github/workflows/test-installers.yml'
+  pull_request:
+    paths:
+      - 'install.sh'
+      - 'install.ps1'
+      - 'scripts/bootstrap.sh'
+      - 'scripts/bootstrap.ps1'
+      - 'scripts/install-skill.sh'
+      - 'scripts/install-skill.ps1'
+      - 'scripts/install-template.sh'
+      - 'scripts/install-template.ps1'
+      - '.github/workflows/test-installers.yml'
+
+jobs:
+  parse-shell:
+    name: Parse shell scripts (POSIX)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: bash -n (parse-only)
+        run: |
+          for f in install.sh scripts/bootstrap.sh scripts/install-skill.sh scripts/install-template.sh; do
+            echo "::group::bash -n $f"
+            bash -n "$f"
+            echo "::endgroup::"
+          done
+
+      - name: dash -n (POSIX strictness)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq dash
+          for f in install.sh scripts/bootstrap.sh scripts/install-skill.sh scripts/install-template.sh; do
+            echo "::group::dash -n $f"
+            dash -n "$f"
+            echo "::endgroup::"
+          done
+
+      - name: shellcheck (best-effort)
+        # Non-blocking — surface lint issues without failing CI on style.
+        continue-on-error: true
+        run: |
+          sudo apt-get install -y -qq shellcheck
+          shellcheck -S warning install.sh scripts/bootstrap.sh scripts/install-skill.sh scripts/install-template.sh || true
+
+  parse-powershell-ubuntu:
+    name: Parse PowerShell scripts (pwsh on Ubuntu, fast feedback)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ASCII-only check (PS 5.1 reads .ps1 as Windows-1252; UTF-8 multi-bytes break the tokenizer)
+        run: |
+          set -e
+          fail=0
+          for f in install.ps1 scripts/bootstrap.ps1 scripts/install-skill.ps1 scripts/install-template.ps1; do
+            if grep -nP '[^\x00-\x7F]' "$f"; then
+              echo "::error file=$f::Non-ASCII characters detected. PS 5.1 will misread these as Windows-1252 and break parsing. Replace with ASCII (e.g. -- for em-dash, -> for arrow)."
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: PowerShell tokenizer + AST parse
+        shell: pwsh
+        run: |
+          $files = @(
+            'install.ps1',
+            'scripts/bootstrap.ps1',
+            'scripts/install-skill.ps1',
+            'scripts/install-template.ps1'
+          )
+          $errors = 0
+          foreach ($f in $files) {
+            Write-Host "::group::Parse $f"
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $f).Path, [ref]$tokens, [ref]$parseErrors
+            ) | Out-Null
+            if ($parseErrors -and $parseErrors.Count -gt 0) {
+              foreach ($e in $parseErrors) {
+                Write-Host "::error file=$f,line=$($e.Extent.StartLineNumber)::$($e.Message)"
+              }
+              $errors += $parseErrors.Count
+            } else {
+              Write-Host "OK"
+            }
+            Write-Host "::endgroup::"
+          }
+          if ($errors -gt 0) { exit 1 }
+
+  install-windows:
+    name: Install + uninstall (Windows native)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install.ps1 -DryRun
+        shell: powershell
+        run: |
+          .\install.ps1 -DryRun
+
+      - name: install.ps1 (real)
+        shell: powershell
+        run: |
+          .\install.ps1
+
+      - name: Verify canonical link exists and points at workspace
+        shell: powershell
+        run: |
+          $canonical = "$HOME\.agents\skills\skillwright"
+          if (-not (Test-Path $canonical)) {
+            Write-Error "Canonical path not created: $canonical"
+            exit 1
+          }
+          $item = Get-Item $canonical -Force
+          Write-Host "LinkType: $($item.LinkType)"
+          Write-Host "Target:   $($item.Target -join ', ')"
+          if ($item.LinkType -notin @('SymbolicLink','Junction')) {
+            Write-Warning "Fell back to copy mode -- see docs/windows-support.md"
+          }
+
+      - name: install.ps1 -Uninstall
+        shell: powershell
+        run: |
+          .\install.ps1 -Uninstall
+
+      - name: Verify canonical link removed
+        shell: powershell
+        run: |
+          $canonical = "$HOME\.agents\skills\skillwright"
+          if (Test-Path $canonical) {
+            Write-Error "Uninstall failed -- $canonical still exists"
+            exit 1
+          }
+
+      - name: install-skill.ps1 against own SKILL.md (round-trip)
+        shell: powershell
+        run: |
+          .\scripts\install-skill.ps1 -Source . -DryRun
+          .\scripts\install-skill.ps1 -Source . -Uninstall
+
+  install-unix:
+    name: Install + uninstall (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install.sh --dry-run
+        run: ./install.sh --dry-run
+
+      - name: install.sh (real)
+        run: ./install.sh
+
+      - name: Verify canonical symlink
+        run: |
+          canonical="$HOME/.agents/skills/skillwright"
+          if [ ! -L "$canonical" ]; then
+            echo "::error::Canonical symlink missing: $canonical"
+            exit 1
+          fi
+          ls -l "$canonical"
+
+      - name: install.sh --uninstall
+        run: ./install.sh --uninstall
+
+      - name: Verify canonical symlink removed
+        run: |
+          canonical="$HOME/.agents/skills/skillwright"
+          if [ -e "$canonical" ] || [ -L "$canonical" ]; then
+            echo "::error::Uninstall failed -- $canonical still exists"
+            exit 1
+          fi

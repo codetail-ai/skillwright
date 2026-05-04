@@ -4,9 +4,18 @@
 
 ### 1. Install
 
+**macOS / Linux / WSL:**
+
 ```bash
 # One-liner — installs to every detected tool
 curl -fsSL https://raw.githubusercontent.com/codetail-ai/skillwright/main/scripts/bootstrap.sh | sh
+```
+
+**Windows (native PowerShell):**
+
+```powershell
+# One-liner — installs to every detected tool
+iwr -useb https://raw.githubusercontent.com/codetail-ai/skillwright/main/scripts/bootstrap.ps1 | iex
 ```
 
 Or clone manually (pick your tool's path):
@@ -22,7 +31,7 @@ git clone https://github.com/codetail-ai/skillwright.git ~/.agents/skills/skillw
 git clone https://github.com/codetail-ai/skillwright.git .cursor/rules/skillwright
 ```
 
-Already cloned? `./install.sh` symlinks to all detected platforms (`--dry-run`, `--uninstall` supported). See [All Platforms](#all-platforms) for the full matrix.
+Already cloned? `./install.sh` (Unix) or `.\install.ps1` (Windows) symlinks to all detected platforms (`--dry-run`, `--uninstall` / `-DryRun`, `-Uninstall` supported). See [All Platforms](#all-platforms) for the full matrix and [Windows notes](#windows-notes) for native-Windows specifics.
 
 ### 2. Use it
 
@@ -52,11 +61,12 @@ sales-report-skill/
 ├── scripts/          # Functional code
 ├── references/       # On-demand docs
 ├── assets/           # Templates, configs
-├── install.sh        # Cross-platform installer (14 tools)
+├── install.sh        # Unix installer (macOS / Linux / WSL)
+├── install.ps1       # Windows installer (PowerShell 5.1+)
 └── README.md
 ```
 
-The skill auto-installs on your platform and tells you how to invoke it. The generated `install.sh` handles all 14 tools, auto-generates format adapters for Cursor (`.mdc`) and Windsurf, and creates a `~/.agents/skills/` symlink for cross-tool discovery.
+The skill auto-installs on your platform and tells you how to invoke it. Both installers handle all 14 tools, auto-generate format adapters for Cursor (`.mdc`) and Windsurf, and create a `~/.agents/skills/` link for cross-tool discovery. On Windows the link is a directory junction (no admin needed) or a symlink (with Developer Mode); see [Windows notes](#windows-notes).
 
 ---
 
@@ -183,11 +193,47 @@ alias install-skills='mkdir -p .cursor/rules && ln -s ~/agent-skills/skillwright
 ### Generated skill installer
 
 ```bash
-./install.sh                    # Auto-detect
+./install.sh                    # Auto-detect (macOS / Linux / WSL)
 ./install.sh --all              # Install everywhere
 ./install.sh --platform cursor  # Force a platform
 ./install.sh --dry-run
 ```
+
+```powershell
+# Windows (native PowerShell). Generated skills now ship install.ps1 alongside install.sh.
+.\install.ps1                   # Auto-detect
+.\install.ps1 -All              # Install everywhere
+.\install.ps1 -Platform cursor  # Force a platform
+.\install.ps1 -DryRun
+```
+
+### Windows notes
+
+Native Windows is supported via PowerShell ports of the install scripts (`install.ps1`, `scripts/bootstrap.ps1`, `scripts/install-skill.ps1`). They target **PowerShell 5.1**, which ships with Windows 10/11 — no extra install.
+
+**One-time setup (if PowerShell rejects the script):**
+
+```powershell
+# Per-session bypass (preferred, doesn't change global policy)
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+
+# Or set per-user once
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
+The `iwr | iex` bootstrap one-liner does NOT need this — `iex` runs a downloaded string and is unaffected by execution policy (the same pattern Chocolatey, Scoop, and oh-my-posh use).
+
+**Symlink behaviour.** Skillwright tries three approaches in order:
+
+1. **Symbolic link** — works if Developer Mode is enabled (Settings → For developers) or the shell runs as admin. Best UX.
+2. **Directory junction** — works for any user, no privileges needed. This is the typical path. Behaves like a symlink for our purposes.
+3. **Copy** — last-resort fallback. **Breaks the auto-update loop**: `git pull` in the source no longer propagates, you must re-run `install.ps1`. The script prints a loud warning when this happens.
+
+Enabling Developer Mode is recommended but not required.
+
+**Path mapping.** Windows uses the same dotfile convention as macOS/Linux — `$HOME\.claude\skills\…`, `$HOME\.agents\skills\…`. We deliberately do *not* redirect to `%APPDATA%`, since the tools themselves don't.
+
+**Known gotchas:** OneDrive-synced `$HOME` can interfere with reparse points; corporate antivirus may quarantine `iwr`-downloaded scripts (clone-and-run instead). See [docs/windows-support.md](docs/windows-support.md) for the full design rationale, the v2 roadmap, and the verification checklist for anyone picking up this work.
 
 ### Claude Desktop / claude.ai
 
@@ -199,10 +245,16 @@ python3 scripts/export_utils.py ./skillwright/ --variant desktop
 ### Update
 
 ```bash
+# macOS / Linux / WSL
 cd ~/.agents/skills/skillwright && git pull
 ```
 
-Symlinks propagate automatically. The skill also performs a silent version check on load.
+```powershell
+# Windows
+cd $HOME\.agents\skills\skillwright; git pull
+```
+
+Symlinks (and Windows junctions) propagate automatically. The skill also performs a silent version check on load. If a Windows install fell back to copy mode (rare — see [Windows notes](#windows-notes)), re-run `.\install.ps1` after `git pull` to refresh the copies.
 
 ---
 

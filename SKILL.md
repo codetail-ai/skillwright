@@ -95,7 +95,8 @@ skill-name/
 ├── scripts/          # Functional Python code (no placeholders)
 ├── references/       # Detailed documentation (loaded on demand)
 ├── assets/           # Templates, schemas, data files
-├── install.sh        # Cross-platform auto-detect installer
+├── install.sh        # Auto-detect installer (macOS / Linux / WSL)
+├── install.ps1       # Auto-detect installer (native Windows PowerShell)
 └── README.md         # Multi-platform installation instructions
 ```
 
@@ -141,7 +142,11 @@ Create all files in this order:
 3. Implement Python scripts (functional, no placeholders, no TODOs)
 4. Write references (detailed documentation the skill loads on demand)
 5. Write assets (templates, configs)
-6. Generate `install.sh` from `scripts/install-template.sh` (replace `{{SKILL_NAME}}` with actual name, `chmod +x`)
+6. Generate **both** installers:
+   - `install.sh` from `scripts/install-template.sh` (replace `{{SKILL_NAME}}` with actual name, `chmod +x`) — covers macOS / Linux / WSL.
+   - `install.ps1` from `scripts/install-template.ps1` (same `{{SKILL_NAME}}` substitution; no `chmod` needed) — covers native Windows PowerShell.
+
+   Both must be present in every generated skill so end-users on any OS can install. See `docs/windows-support.md` for the Windows port's design rationale.
 7. Write `README.md` (multi-platform install instructions showing `git clone` for each platform)
 8. Run **validation** against the official spec
 9. Run **security scan** for hardcoded keys and injection patterns
@@ -196,29 +201,29 @@ To use it, open a new session and type:
 The skill is installed at: ~/.claude/skills/sales-report-skill
 ```
 
-If you cannot detect the platform, show the user how to run the install manually:
+If you cannot detect the platform, show the user how to run the install manually. Pick the right script for their OS:
 
 ```
-I couldn't auto-detect your platform. To install, run:
+I couldn't auto-detect your platform. To install, run one of:
 
+  # macOS / Linux / WSL
   ./sales-report-skill/install.sh
-
-Or specify your platform:
-
   ./sales-report-skill/install.sh --platform cursor
-
-Or install to all detected platforms at once:
-
   ./sales-report-skill/install.sh --all
+
+  # Native Windows (PowerShell)
+  .\sales-report-skill\install.ps1
+  .\sales-report-skill\install.ps1 -Platform cursor
+  .\sales-report-skill\install.ps1 -All
 
 Alternative (if npx is available):
 
   npx skills add ./sales-report-skill
 ```
 
-The `install.sh` inside the skill handles auto-detection, platform-specific paths, project vs user level, dry-run mode, and post-install activation instructions. It is the fallback for users who receive the skill as a package (not created in their current session).
+Both `install.sh` and `install.ps1` handle auto-detection, platform-specific paths, project vs user level, dry-run mode, and post-install activation instructions. They are the fallback for users who receive the skill as a package (not created in their current session).
 
-The generated skill must be a self-contained package that anyone can install with `git clone` or `./install.sh` and invoke with `/skill-name` — the same way skillwright itself works.
+The generated skill must be a self-contained package that anyone — Unix or Windows — can install with `git clone` followed by either `./install.sh` or `.\install.ps1` and invoke with `/skill-name`, the same way skillwright itself works.
 
 ### Share With Your Team (Post-Creation)
 
