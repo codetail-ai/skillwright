@@ -8,14 +8,14 @@
 
 ```bash
 # One-liner — installs to every detected tool
-curl -fsSL https://raw.githubusercontent.com/codetail-ai/skillwright/main/scripts/bootstrap.sh | sh
+curl -fsSL https://raw.githubusercontent.com/codetail-ai/skillwright/master/scripts/bootstrap.sh | sh
 ```
 
 **Windows (native PowerShell):**
 
 ```powershell
 # One-liner — installs to every detected tool
-iwr -useb https://raw.githubusercontent.com/codetail-ai/skillwright/main/scripts/bootstrap.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/codetail-ai/skillwright/master/scripts/bootstrap.ps1 | iex
 ```
 
 Or clone manually (pick your tool's path):
